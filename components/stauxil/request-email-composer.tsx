@@ -34,7 +34,6 @@ export function RequestEmailComposer({
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<EmailTemplateKey>('acknowledgment')
   const [feedback, setFeedback] = useState<FeedbackState>(null)
   const [isSending, setIsSending] = useState(false)
-  const isVerificationTemplate = selectedTemplateKey === 'verification'
 
   useEffect(() => {
     if (!templates || templates.length === 0) {
@@ -67,9 +66,7 @@ export function RequestEmailComposer({
 
       setFeedback({
         kind: 'success',
-        message: isVerificationTemplate
-          ? `${EMAIL_TEMPLATE_LABELS[selectedTemplateKey]} email queued for provider delivery.`
-          : `${EMAIL_TEMPLATE_LABELS[selectedTemplateKey]} email logged for this request.`,
+        message: `${EMAIL_TEMPLATE_LABELS[selectedTemplateKey]} email queued for provider delivery.`,
       })
     } catch (error) {
       setFeedback({
@@ -86,14 +83,11 @@ export function RequestEmailComposer({
       <CardHeader>
         <div className="flex items-center gap-2">
           <CardTitle>Email preview and log</CardTitle>
-          <Badge variant="secondary">
-            {isVerificationTemplate ? 'Provider send' : 'Logged only'}
-          </Badge>
+          <Badge variant="secondary">Provider send</Badge>
         </div>
         <CardDescription>
-          {isVerificationTemplate
-            ? 'Verification emails are queued for outbound provider delivery and written to the request audit trail.'
-            : 'Preview the rendered email, then record it on the request. Each entry creates both an activity event and an email log record.'}
+          Preview the rendered email, then queue it for outbound provider delivery. Each send
+          creates both an activity event and an email log record for this request.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -152,20 +146,14 @@ export function RequestEmailComposer({
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" disabled={isSending || preview === undefined || !preview.isEnabled}>
               <Send />
-              {isSending
-                ? isVerificationTemplate
-                  ? 'Queueing email...'
-                  : 'Logging email...'
-                : isVerificationTemplate
-                  ? 'Send email'
-                  : 'Log email'}
+              {isSending ? 'Queueing email...' : 'Send email'}
             </Button>
             <FeedbackMessage feedback={feedback} />
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Verification uses the configured delivery provider. Other templates stay inside
-            Stauxil as logged-only history for this MVP.
+            All requester-facing templates use the configured Resend delivery path. Historical
+            logged-only entries remain visible in the email log.
           </p>
         </form>
       </CardContent>

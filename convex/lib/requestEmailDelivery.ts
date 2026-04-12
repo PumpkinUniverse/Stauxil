@@ -2,8 +2,8 @@ import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { createEmailLogEntry } from '../emailLogs'
 import { getEffectiveEmailTemplate } from '../emailTemplates'
-import { insertRequestEvent } from '../requestEvents'
 import { normalizeEmail } from './access'
+import { getTransactionalEmailDefaults } from './emailProvider'
 import {
   buildRequestTemplateVariables,
   renderTemplateContent,
@@ -22,14 +22,7 @@ type BuildRequestEmailPreviewArgs = {
 
 type QueueRequestTemplateDeliveryArgs = BuildRequestEmailPreviewArgs & {
   createdByMemberId: Id<'workspaceMembers'> | null
-}
-
-type SimulateRequestTemplateDeliveryArgs = BuildRequestEmailPreviewArgs & {
-  createdByMemberId: Id<'workspaceMembers'> | null
-  actorType: 'member' | 'system'
-  eventType: string
-  eventMessage: string
-  eventDetails?: Record<string, string>
+  preferredReplyToEmail?: string | null
 }
 
 export async function buildRequestEmailPreview(
@@ -64,6 +57,7 @@ export async function queueRequestTemplateDelivery(
   args: QueueRequestTemplateDeliveryArgs
 ) {
   const preview = await buildRequestEmailPreview(ctx, args)
+  const deliveryDefaults = getTransactionalEmailDefaults(args.preferredReplyToEmail)
 
   if (!preview.isEnabled) {
     throw new Error('This template is disabled for the workspace.')
@@ -79,6 +73,10 @@ export async function queueRequestTemplateDelivery(
     body: preview.body,
     status: 'queued',
     deliveryMode: 'provider',
+    fromEmail: deliveryDefaults.fromEmail,
+    replyToEmail: deliveryDefaults.replyToEmail,
+    senderSource: 'platform',
+    providerName: deliveryDefaults.providerName,
     createdByMemberId: args.createdByMemberId,
   })
 
@@ -86,50 +84,7 @@ export async function queueRequestTemplateDelivery(
     ...preview,
     emailLogId,
     deliveryMode: 'provider' as const,
-  }
-}
-
-export async function simulateRequestTemplateDelivery(
-  ctx: MutationCtx,
-  args: SimulateRequestTemplateDeliveryArgs
-) {
-  const preview = await buildRequestEmailPreview(ctx, args)
-
-  if (!preview.isEnabled) {
-    throw new Error('This template is disabled for the workspace.')
-  }
-
-  const emailLogId = await createEmailLogEntry(ctx, {
-    workspaceId: args.workspace._id,
-    requestId: args.request._id,
-    templateId: preview.templateId,
-    templateKey: preview.templateKey,
-    toEmail: preview.toEmail,
-    subject: preview.subject,
-    body: preview.body,
-    status: 'sent',
-    deliveryMode: 'simulated',
-    createdByMemberId: args.createdByMemberId,
-  })
-
-  await insertRequestEvent(ctx, {
-    workspaceId: args.workspace._id,
-    requestId: args.request._id,
-    actorType: args.actorType,
-    actorMemberId: args.createdByMemberId,
-    eventType: args.eventType,
-    message: args.eventMessage,
-    details: {
-      delivery: 'logged only',
-      template: preview.templateName,
-      toEmail: preview.toEmail,
-      ...(args.eventDetails ?? {}),
-    },
-  })
-
-  return {
-    ...preview,
-    emailLogId,
-    deliveryMode: 'simulated' as const,
+    fromEmail: deliveryDefaults.fromEmail,
+    replyToEmail: deliveryDefaults.replyToEmail,
   }
 }

@@ -1,7 +1,8 @@
 import { v } from 'convex/values'
+import { internal } from './_generated/api'
 import { mutation, query } from './_generated/server'
 import { requireRequestAccess } from './lib/access'
-import { buildRequestEmailPreview, simulateRequestTemplateDelivery } from './lib/requestEmailDelivery'
+import { buildRequestEmailPreview, queueRequestTemplateDelivery } from './lib/requestEmailDelivery'
 import { formatExpirationTime } from './lib/requestEmailTemplates'
 import { buildVerificationUrl } from './lib/verificationEmail'
 import {
@@ -83,14 +84,21 @@ export const sendTemplate = mutation({
       }
     }
 
-    const delivery = await simulateRequestTemplateDelivery(ctx, {
+    const delivery = await queueRequestTemplateDelivery(ctx, {
       workspace,
       request,
       templateKey: args.templateKey,
       createdByMemberId: membership._id,
-      actorType: 'member',
-      eventType: 'request_email_simulated',
-      eventMessage: 'Logged a request email',
+      preferredReplyToEmail: workspace.supportEmail ?? null,
+    })
+
+    await ctx.scheduler.runAfter(0, internal.verificationDelivery.deliverRequestEmail, {
+      workspaceId: workspace._id,
+      requestId: request._id,
+      emailLogId: delivery.emailLogId,
+      toEmail: delivery.toEmail,
+      subject: delivery.subject,
+      body: delivery.body,
     })
 
     return {

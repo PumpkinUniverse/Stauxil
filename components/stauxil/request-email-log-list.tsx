@@ -41,8 +41,8 @@ export function RequestEmailLogList({
       <CardHeader>
         <CardTitle>Email log</CardTitle>
         <CardDescription>
-          Outbound and logged template email activity appears here with recipient, effective sender,
-          status, and rendered message content.
+          Provider-backed request emails appear here with recipient, effective sender, status, and
+          rendered message content. Historical logged-only entries remain visible for continuity.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -7,7 +7,6 @@ import { useMutation, useQuery } from 'convex/react'
 import { ExternalLink, ShieldCheck } from 'lucide-react'
 import { api } from '@/convex/_generated/api'
 import { useActiveWorkspace } from '@/components/stauxil/app-shell'
-import { WorkspaceSenderSettingsCard } from '@/components/stauxil/workspace-sender-settings-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -398,12 +397,32 @@ export function WorkspaceSettingsPage() {
       </Card>
 
       <div className="flex flex-col gap-6">
-        <WorkspaceSenderSettingsCard
-          workspaceId={workspaceId}
-          membershipRole={settings.membershipRole}
-          supportEmail={settings.supportEmail}
-          senderSetup={settings.senderSetup}
-        />
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary">Outbound email</Badge>
+              <Badge variant="outline">Platform sender</Badge>
+            </div>
+            <CardTitle>Resend delivery path</CardTitle>
+            <CardDescription>
+              Stauxil sends request emails from the shared platform mailbox configured in Vercel.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground">
+            <p>
+              Verification emails and request updates use the same Resend delivery path so request
+              history stays consistent across the workspace.
+            </p>
+            <p>
+              Replies go to this workspace&apos;s support email when it is set. If support email is
+              unavailable, Stauxil falls back to the deployment-level reply-to setting.
+            </p>
+            <p>
+              Per-workspace sender-domain verification is not part of this MVP. Keep the support
+              email current so requesters always reply to the right team inbox.
+            </p>
+          </CardContent>
+        </Card>
 
         {billing ? (
           <Card>
@@ -514,7 +533,8 @@ export function WorkspaceSettingsPage() {
             <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3">
               <p className="text-sm font-medium text-foreground">Public intake link</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {settings.publicFormPath ?? 'Public form link unavailable until workspace slug exists.'}
+                {settings.publicFormPath ??
+                  'Public form link unavailable until a support email is saved for this workspace.'}
               </p>
             </div>
 
@@ -539,7 +559,8 @@ export function WorkspaceSettingsPage() {
           <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
             <p>Workspace name updates the authenticated shell and public intake branding.</p>
             <p>Support email, logo URL, and brand color flow into public request surfaces.</p>
-            <p>Verified workspace senders can replace the platform sender for verification emails.</p>
+            <p>Support email also becomes the Reply-To destination for outbound request emails.</p>
+            <p>Public intake links stay blocked until support email is configured.</p>
             <p>Timezone, SLA days, and allowed request types update intake defaults safely.</p>
             <p>Intro and success copy shape the public submission experience for this workspace.</p>
           </CardContent>

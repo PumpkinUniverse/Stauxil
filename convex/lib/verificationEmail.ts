@@ -23,6 +23,7 @@ export async function queueVerificationEmail(
     request: args.request,
     templateKey: VERIFICATION_TEMPLATE_KEY,
     toEmail: args.toEmail,
+    preferredReplyToEmail: args.workspace.supportEmail ?? null,
     extraVariables: {
       verificationUrl: args.verificationUrl,
       expirationTime: formatExpirationTime(args.expiresAt),

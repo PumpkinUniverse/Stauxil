@@ -224,10 +224,14 @@ function AuthenticatedShell({ children }: { children: ReactNode }) {
   }
 
   const activeWorkspace = workspaces[0]
+  const hasPublicSupportEmail = Boolean(activeWorkspace.workspace.supportEmail?.trim())
   const contextValue: ActiveWorkspaceContextValue = {
     workspaceId: activeWorkspace.workspace._id,
     workspaceName: activeWorkspace.workspace.name,
-    publicFormPath: activeWorkspace.workspace.slug ? `/request/${activeWorkspace.workspace.slug}` : null,
+    publicFormPath:
+      activeWorkspace.workspace.slug && hasPublicSupportEmail
+        ? `/request/${activeWorkspace.workspace.slug}`
+        : null,
     workspaceCount: workspaces.length,
     membershipRole: activeWorkspace.membership.role,
     isPersonal: activeWorkspace.workspace.isPersonal,

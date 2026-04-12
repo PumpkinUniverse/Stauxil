@@ -5,7 +5,6 @@ import { ensureDefaultEmailTemplates } from './emailTemplates'
 import { assertWorkspaceCanUseCustomBranding, getWorkspaceBillingSnapshot } from './lib/billing'
 import { getDefaultWorkspaceName, normalizeEmail, requireIdentity, requireWorkspaceAccess } from './lib/access'
 import { requestTypeValidator, workspacePlanValidator } from './validators'
-import { getWorkspaceSenderSetupValue } from './workspaceSenders'
 import {
   DEFAULT_STAUXIL_BRAND_COLOR,
   DEFAULT_WORKSPACE_PLAN,
@@ -75,8 +74,13 @@ function getWorkspaceSlug(workspace: Doc<'workspaces'>): string | null {
   return slug || null
 }
 
-function buildPublicFormPath(workspaceSlug: string | null) {
-  return workspaceSlug === null ? null : `/request/${workspaceSlug}`
+function buildPublicFormPath(workspace: Doc<'workspaces'>) {
+  const workspaceSlug = getWorkspaceSlug(workspace)
+  if (workspaceSlug === null || !isPublicIntakeConfigured(workspace)) {
+    return null
+  }
+
+  return `/request/${workspaceSlug}`
 }
 
 function getAllowedPublicRequestTypes(workspace: Doc<'workspaces'>): Doc<'requests'>['requestType'][] {
@@ -105,6 +109,18 @@ function getWorkspaceSupportEmail(
   }
 
   return workspace.createdByEmail?.trim() || null
+}
+
+export function isPublicIntakeConfigured(workspace: Doc<'workspaces'>) {
+  return getWorkspaceSupportEmail(workspace, { publicValue: true }) !== null
+}
+
+export function getPublicIntakeBlockerMessage(workspace: Doc<'workspaces'>) {
+  if (!isPublicIntakeConfigured(workspace)) {
+    return 'Public request intake is blocked until a support email is added in workspace settings.'
+  }
+
+  return null
 }
 
 function getWorkspaceTimezone(workspace: Doc<'workspaces'>) {
@@ -457,13 +473,11 @@ export const getSettings = query({
   handler: async (ctx, args) => {
     const { membership, workspace } = await requireWorkspaceAccess(ctx, args.workspaceId)
     const settings = getWorkspaceSettings(workspace)
-    const senderSetup = await getWorkspaceSenderSetupValue(ctx, workspace)
 
     return {
       membershipRole: membership.role,
       workspaceSlug: getWorkspaceSlug(workspace),
-      publicFormPath: buildPublicFormPath(getWorkspaceSlug(workspace)),
-      senderSetup,
+      publicFormPath: buildPublicFormPath(workspace),
       ...settings,
     }
   },
@@ -486,10 +500,11 @@ export const getPublicIntakeWorkspace = query({
       ...getWorkspacePublicIntakeConfig(workspace),
       plan: billing.plan,
       planLabel: billing.planLabel,
-      requestIntakeOpen: !billing.limits.requestVolumeReached,
-      requestIntakeMessage: billing.limits.requestVolumeReached
-        ? billing.messages.requestVolume
-        : null,
+      requestIntakeOpen:
+        getPublicIntakeBlockerMessage(workspace) === null && !billing.limits.requestVolumeReached,
+      requestIntakeMessage:
+        getPublicIntakeBlockerMessage(workspace) ??
+        (billing.limits.requestVolumeReached ? billing.messages.requestVolume : null),
       requestsThisMonth: billing.usage.requestsThisMonth,
       requestLimit: billing.usage.requestLimit,
     }
@@ -613,7 +628,7 @@ export const ensureWorkspaceSlug = mutation({
     return {
       workspaceId: workspace._id,
       workspaceSlug,
-      publicFormPath: buildPublicFormPath(workspaceSlug),
+      publicFormPath: isPublicIntakeConfigured(workspace) ? `/request/${workspaceSlug}` : null,
     }
   },
 })

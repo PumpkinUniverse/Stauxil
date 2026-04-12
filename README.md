@@ -21,7 +21,6 @@ CLERK_SECRET_KEY=
 CLERK_JWT_ISSUER_DOMAIN=
 NEXT_PUBLIC_APP_URL=
 NEXT_PUBLIC_SITE_URL=
-EMAIL_PROVIDER=
 EMAIL_FROM=
 EMAIL_REPLY_TO=
 RESEND_API_KEY=
@@ -29,7 +28,7 @@ RESEND_API_KEY=
 
 `NEXT_PUBLIC_APP_URL` or `NEXT_PUBLIC_SITE_URL` is optional for local UI work, but it should be set when you want generated verification links to point at the correct app URL.
 
-For outbound verification delivery, set `EMAIL_PROVIDER=resend`, `EMAIL_FROM`, and `RESEND_API_KEY`. `EMAIL_REPLY_TO` is optional. If the provider config is missing, Stauxil still creates the request and verification token, but the request audit trail records the verification email as a failed provider send.
+For outbound email delivery, set `EMAIL_FROM` and `RESEND_API_KEY`. `EMAIL_REPLY_TO` is optional and acts as the fallback reply destination when a workspace support email is not available. If the delivery config is missing, Stauxil still creates the request and verification token, but the request audit trail records the email as a failed provider send.
 
 3. Start Convex in one terminal:
 
@@ -55,13 +54,20 @@ npm run typecheck
 npm run build
 ```
 
-## Verification email testing
+## Email delivery testing
 
-1. Set `EMAIL_PROVIDER=resend`, `EMAIL_FROM`, `RESEND_API_KEY`, and optionally `EMAIL_REPLY_TO`.
+1. Set `EMAIL_FROM`, `RESEND_API_KEY`, and optionally `EMAIL_REPLY_TO`.
 2. Start `npx convex dev` and `npm run dev`.
 3. Submit a public request from `/request/[workspaceSlug]`.
 4. Open the request in the app and confirm the email log moves from `Queued` to `Sent` with delivery mode `Provider`, and the activity timeline records the verification send. If you leave the provider vars unset, the request still lands, but the email log changes to `Failed` and the timeline records the failure reason.
 5. Open the link from the received email and confirm the request moves to `Verified`.
+6. Send each requester-facing template from the request detail page and confirm the log records `Provider` delivery with the workspace support email in `Reply-To` when it is configured.
+
+## Vercel project linking
+
+1. Link the repo to the Vercel project before relying on shared env management.
+2. Confirm the Resend marketplace integration provisions `RESEND_API_KEY` on the Vercel project.
+3. Pull environment variables locally with `vercel env pull` after updating Vercel config.
 
 ## Notes for contributors
 

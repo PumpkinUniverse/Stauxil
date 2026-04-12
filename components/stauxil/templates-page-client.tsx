@@ -101,7 +101,7 @@ export function TemplatesPageClient() {
           <CardTitle>Template library</CardTitle>
           <CardDescription>
             One operational template set per workspace. Save changes here, then preview and send
-            from a request record.
+            from a request record through the shared Resend delivery path.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -238,7 +238,7 @@ export function TemplatesPageClient() {
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <p>Templates stay workspace-scoped.</p>
               <p>Preview rendering uses live request data.</p>
-              <p>Every logged email creates both a request event and an email log record.</p>
+              <p>Every sent email creates both a request event and an email log record.</p>
             </CardContent>
           </Card>
         </div>

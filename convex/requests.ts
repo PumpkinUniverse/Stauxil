@@ -8,6 +8,7 @@ import { insertRequestEvent } from './requestEvents'
 import { issueVerificationToken, sendVerificationEmail } from './verification'
 import {
   findWorkspaceBySlug,
+  getPublicIntakeBlockerMessage,
   getWorkspacePublicIntakeConfig,
   getWorkspaceSlaSettings,
 } from './workspaces'
@@ -652,6 +653,11 @@ export const createPublicRequest = mutation({
 
     if (workspace === null) {
       throw new Error('This request form is not available.')
+    }
+
+    const publicIntakeBlockerMessage = getPublicIntakeBlockerMessage(workspace)
+    if (publicIntakeBlockerMessage !== null) {
+      throw new Error(publicIntakeBlockerMessage)
     }
 
     const fullName = args.fullName.trim()

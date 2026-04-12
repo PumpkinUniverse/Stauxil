@@ -3,11 +3,7 @@ type EmailProviderSendArgs = {
   subject: string
   body: string
   idempotencyKey: string
-  sender?: {
-    fromEmail?: string | null
-    displayName?: string | null
-    replyToEmail?: string | null
-  }
+  replyToEmail?: string | null
 }
 
 export type EmailProviderSendResult = {
@@ -17,14 +13,15 @@ export type EmailProviderSendResult = {
   replyToEmail: string | null
 }
 
-type EmailProvider = {
-  name: 'resend'
-  send: (args: EmailProviderSendArgs) => Promise<EmailProviderSendResult>
+export type TransactionalEmailDefaults = {
+  providerName: 'resend'
+  fromEmail: string | null
+  replyToEmail: string | null
 }
 
 type ResendConfig = {
   apiKey: string
-  defaultFromEmail: string
+  fromEmail: string
   defaultReplyToEmail: string | null
 }
 
@@ -53,47 +50,37 @@ export class EmailProviderSendError extends Error {
 export async function sendTransactionalEmail(
   args: EmailProviderSendArgs
 ): Promise<EmailProviderSendResult> {
-  const provider = getConfiguredEmailProvider()
-  return await provider.send(args)
+  const config = getResendConfig()
+  return await sendWithResend(config, args)
 }
 
-function getConfiguredEmailProvider(): EmailProvider {
-  const providerName = (process.env.EMAIL_PROVIDER ?? '').trim().toLowerCase()
+export function getTransactionalEmailDefaults(
+  preferredReplyToEmail?: string | null
+): TransactionalEmailDefaults {
+  const defaultReplyToEmail = normalizeOptionalValue(process.env.EMAIL_REPLY_TO)
+  const requestedReplyToEmail = normalizeOptionalValue(preferredReplyToEmail)
 
-  if (!providerName) {
-    throw new EmailProviderConfigError(
-      'Verification email delivery is not configured. Set EMAIL_PROVIDER=resend, EMAIL_FROM, and RESEND_API_KEY.'
-    )
+  return {
+    providerName: 'resend',
+    fromEmail: normalizeOptionalValue(process.env.EMAIL_FROM),
+    replyToEmail: requestedReplyToEmail ?? defaultReplyToEmail,
   }
-
-  if (providerName === 'resend') {
-    const config = getResendConfig()
-
-    return {
-      name: 'resend',
-      send: async (args) => await sendWithResend(config, args),
-    }
-  }
-
-  throw new EmailProviderConfigError(
-    `Unsupported EMAIL_PROVIDER "${providerName}". Use EMAIL_PROVIDER=resend for this MVP.`
-  )
 }
 
 function getResendConfig(): ResendConfig {
   const apiKey = process.env.RESEND_API_KEY?.trim()
-  const fromEmail = process.env.EMAIL_FROM?.trim()
+  const fromEmail = normalizeOptionalValue(process.env.EMAIL_FROM)
 
   if (!apiKey || !fromEmail) {
     throw new EmailProviderConfigError(
-      'Resend delivery requires both RESEND_API_KEY and EMAIL_FROM.'
+      'Outbound email delivery requires both RESEND_API_KEY and EMAIL_FROM. The Vercel Resend integration provides RESEND_API_KEY, but EMAIL_FROM still needs to be set manually. For local testing, you can use onboarding@resend.dev until your sending domain is verified.'
     )
   }
 
   return {
     apiKey,
-    defaultFromEmail: fromEmail,
-    defaultReplyToEmail: process.env.EMAIL_REPLY_TO?.trim() || null,
+    fromEmail,
+    defaultReplyToEmail: normalizeOptionalValue(process.env.EMAIL_REPLY_TO),
   }
 }
 
@@ -101,8 +88,9 @@ async function sendWithResend(
   config: ResendConfig,
   args: EmailProviderSendArgs
 ): Promise<EmailProviderSendResult> {
-  const fromEmail = args.sender?.fromEmail?.trim() || config.defaultFromEmail
-  const replyToEmail = args.sender?.replyToEmail?.trim() || config.defaultReplyToEmail
+  const defaults = getTransactionalEmailDefaults(args.replyToEmail)
+  const fromEmail = config.fromEmail
+  const replyToEmail = defaults.replyToEmail ?? config.defaultReplyToEmail
 
   const response = await fetch(RESEND_SEND_EMAIL_URL, {
     method: 'POST',
@@ -113,7 +101,7 @@ async function sendWithResend(
       'User-Agent': RESEND_USER_AGENT,
     },
     body: JSON.stringify({
-      from: formatMailbox(fromEmail, args.sender?.displayName ?? null),
+      from: fromEmail,
       to: [args.toEmail],
       subject: args.subject,
       text: args.body,
@@ -133,15 +121,6 @@ async function sendWithResend(
     fromEmail,
     replyToEmail,
   }
-}
-
-function formatMailbox(email: string, displayName: string | null | undefined) {
-  const normalizedDisplayName = displayName?.trim() || ''
-  if (!normalizedDisplayName) {
-    return email
-  }
-
-  return `${normalizedDisplayName} <${email}>`
 }
 
 async function readJsonPayload(response: Response): Promise<unknown> {
@@ -168,7 +147,7 @@ function formatProviderErrorMessage(status: number, payload: unknown) {
     return `Resend returned ${status}: ${providerMessage}`
   }
 
-  return `Resend returned ${status} while sending the verification email.`
+  return `Resend returned ${status} while sending the email.`
 }
 
 function getPayloadString(payload: unknown, key: string) {
@@ -178,4 +157,9 @@ function getPayloadString(payload: unknown, key: string) {
 
   const value = (payload as Record<string, unknown>)[key]
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function normalizeOptionalValue(value: string | null | undefined) {
+  const trimmedValue = value?.trim()
+  return trimmedValue ? trimmedValue : null
 }
