@@ -1,0 +1,419 @@
+# Stauxil Workspace Owner Guide
+
+## Overview
+Stauxil is a privacy request operations app for small businesses. It gives you a public intake form for requesters and a private workspace where your team can verify requests, assign ownership, track deadlines, keep notes, and maintain an audit trail.
+
+This guide is written for workspace owners. It explains how to set up the workspace, publish the public request form, manage incoming requests, and keep your team organized.
+
+## What Stauxil Helps You Do
+As a workspace owner, you use Stauxil to:
+
+1. Publish a public form where people can submit privacy requests.
+2. Verify requester email before work begins.
+3. Keep all request activity in one workspace.
+4. Assign case owners and monitor deadlines.
+5. Standardize team replies with templates.
+6. Export or print case history when your plan includes exports.
+
+## What Stauxil Does Not Do
+Stauxil is a workflow and documentation tool. It does not:
+
+1. Give legal advice.
+2. Automatically delete data from other tools.
+3. Verify identity with government ID or selfies.
+4. Reopen closed requests in the current workflow.
+
+## Who Should Use This Guide
+This guide is for:
+
+1. Business owners
+2. Operations leads
+3. Privacy inbox owners
+4. Support managers
+5. Team leads responsible for request intake and follow-up
+
+## Before You Start
+You need:
+
+1. A Stauxil account
+2. Access to your workspace
+3. A support email address your team monitors
+4. A decision on which request types you want to accept
+
+For full email verification delivery, your Stauxil environment also needs an email provider configured. In this MVP, verification emails are sent through the provider. Other template-based emails are logged inside Stauxil as part of the case history.
+
+## How the Workspace Is Organized
+After you sign in, Stauxil creates your first workspace automatically. Inside the workspace, the main areas are:
+
+### Dashboard
+Use the dashboard to see:
+
+1. Open requests
+2. Overdue requests
+3. Requests due this week
+4. Requests completed this month
+
+It also shows a recent request queue so you can open active cases quickly.
+
+### Requests
+Use the full request queue to:
+
+1. Search by case ID or requester email
+2. Filter by status
+3. Filter by owner
+4. Filter by request type
+5. Show overdue requests only
+6. Export the queue as CSV when exports are available on your plan
+
+### Templates
+Use the Templates page to manage the standard emails your workspace uses for request operations.
+
+Default template categories are:
+
+1. Verification
+2. Acknowledgment
+3. More information needed
+4. Completion
+5. Denial / update
+
+### Settings
+Use Settings to manage:
+
+1. Workspace name
+2. Support email
+3. Timezone
+4. Default SLA days
+5. Allowed request types
+6. Public form intro copy
+7. Public form success message
+8. Brand color and logo URL when custom branding is enabled on your plan
+
+### Billing
+Use Billing to review:
+
+1. Current plan
+2. Monthly request usage
+3. Team member limits
+4. Export availability
+5. Custom branding availability
+
+## Quick Start for Workspace Owners
+Follow these steps when you first open Stauxil.
+
+### Step 1: Review Your Workspace
+1. Sign in to Stauxil.
+2. Wait for your workspace to finish loading.
+3. Confirm the workspace name shown in the sidebar.
+
+### Step 2: Configure Workspace Settings
+1. Open **Settings**.
+2. Enter your workspace or company name.
+3. Enter the support email address requesters should use for follow-up.
+4. Set your timezone.
+5. Set your default SLA in days.
+6. Select the request types you want to accept.
+7. Add public form intro copy.
+8. Add the success message requesters should see after submission.
+9. If your plan supports it, set your logo URL and brand color.
+10. Click **Save settings**.
+
+### Step 3: Review the Public Form Preview
+1. Stay on **Settings**.
+2. Review the public form preview card.
+3. Confirm the support email, SLA, branding, and request types look correct.
+4. Click **Open public form** to test the public view in a new tab.
+
+### Step 4: Review Email Templates
+1. Open **Templates**.
+2. Select each template in the library.
+3. Confirm the subject and body match your operational process.
+4. Save any edits you want to make before real requests arrive.
+
+### Step 5: Submit a Test Request
+1. Open your public request form.
+2. Submit a test request using your own email address.
+3. Return to the Stauxil workspace.
+4. Open the new request from the dashboard or queue.
+5. Check that the case includes a case ID, due date, and verification state.
+
+## How to Publish Your Public Intake Form
+Once settings are ready, you can share the public request form.
+
+1. Open **Settings**.
+2. Find the **Public intake link** section.
+3. Open the link to confirm the page loads correctly.
+4. Share the link on your website, privacy page, support center, or help desk articles.
+
+Use the public link exactly as generated by the workspace. It is tied to your workspace slug.
+
+## How to Handle a New Request
+This is the standard owner workflow.
+
+### Step 1: Open the Request
+1. Go to **Dashboard** or **Requests**.
+2. Find the case in the queue.
+3. Open the request record.
+
+Inside the request record, review:
+
+1. Case ID
+2. Request type
+3. Status
+4. Verification status
+5. Submitted date
+6. Due date
+7. Requester details
+8. Subject details
+9. Current owner
+
+### Step 2: Check Verification
+1. Find the **Verification State** card.
+2. Confirm whether the request is `Pending`, `Verified`, `Expired`, `Failed`, or `Not required`.
+3. If the requester has not verified, choose one of these actions:
+   1. Click **Send verification email** to queue a fresh verification email.
+   2. Click **Mark verified manually** if you handled verification outside the normal flow.
+
+Every verification action is added to the request timeline.
+
+### Step 3: Assign an Owner
+1. In the **Assign Owner** section, choose the team member responsible for the case.
+2. Click **Save owner**.
+
+If you are handling the request yourself, assign the request to your own account. This makes ownership clear and reduces missed follow-up.
+
+### Step 4: Start Work
+1. In **Update Status**, choose **In progress**.
+2. Add a short internal note if needed.
+3. Click **Update status**.
+
+Use internal notes for context that should stay inside the team workspace.
+
+## How to Ask the Requester for More Information
+Use this flow when the request is missing important details.
+
+1. Open the request.
+2. In **Update Status**, select **Waiting on requester**.
+3. Add an internal note describing what is missing.
+4. Click **Update status**.
+5. In **Email preview and log**, choose **More information needed**.
+6. Review the rendered subject and body preview.
+7. Confirm the message is correct.
+8. Click **Log email**.
+
+In this MVP, this creates a request event and an email log record so your team has a clear case history.
+
+## How to Send a Standard Reply
+Use the email composer on the request page.
+
+1. Open the request.
+2. Go to **Email preview and log**.
+3. Choose the template you want to use.
+4. Review the preview carefully.
+5. If the template is disabled, go to **Templates** and enable it first.
+6. Click **Send email** for the Verification template.
+7. Click **Log email** for the other template types.
+
+The preview uses live request data. Template placeholders can fill values such as:
+
+1. Requester name
+2. Company name
+3. Case ID
+4. Request type
+5. Due date
+
+## How to Close a Request
+Use closure only after you are done with the case.
+
+1. Open the request.
+2. Confirm notes, owner assignment, and email history are complete.
+3. If needed, log a final completion or denial message first.
+4. In **Close Request**, choose one closure outcome:
+   1. **Completed**
+   2. **Rejected**
+   3. **Cancelled**
+5. Add a closure note if useful.
+6. Click **Close request**.
+
+Closed requests stay read-only in the current workflow, so check the record carefully before closing it.
+
+## How to Monitor the Workspace
+As a workspace owner, you should review the workspace regularly.
+
+### Daily Review
+1. Open **Dashboard**.
+2. Check open and overdue counts.
+3. Review the recent request queue.
+4. Open any requests due soon.
+
+### Weekly Review
+1. Open **Requests**.
+2. Filter for overdue requests.
+3. Filter for unassigned or stalled requests.
+4. Review requests in **Waiting on requester**.
+5. Check whether team members are keeping notes and email logs current.
+
+### Monthly Review
+1. Open **Billing**.
+2. Review request volume for the month.
+3. Check member usage and plan limits.
+4. Export the request queue if exports are enabled on your plan.
+
+## Plan Limits and Owner Responsibilities
+Stauxil uses workspace plans to control usage and features.
+
+### Starter
+Includes:
+
+1. Up to 20 requests per month
+2. 1 member
+3. Default branding
+
+Does not include:
+
+1. Exports
+2. Custom branding
+
+### Pro
+Includes:
+
+1. Up to 100 requests per month
+2. Up to 5 members
+3. Exports
+4. Custom branding
+
+### Team
+Includes:
+
+1. Unlimited requests
+2. Unlimited members
+3. Exports
+4. Custom branding
+
+If your workspace hits the monthly request limit, public intake pauses until the plan is updated. If you need exports or branding controls, review the Billing page and upgrade path.
+
+## Realistic Owner Examples
+
+### Example 1: New deletion request
+A customer submits a deletion request from the public form. You open the new case, confirm the due date, resend the verification email because the first link expired, assign the request to yourself, move it to **In progress**, and log the final response before closing it as **Completed**.
+
+### Example 2: Incomplete request
+A requester asks for access to records but does not include enough identifying information. You assign the case to a team member, move it to **Waiting on requester**, add an internal note, and log a **More information needed** message so the missing information request is visible in the case record.
+
+### Example 3: Monthly owner review
+At the end of the month, you open **Billing** and see the workspace is close to the monthly request limit. You export the request queue, review overdue requests with the team, and decide whether to upgrade the workspace plan before intake pauses.
+
+## Common Mistakes
+
+### Closing a request too early
+Once a request is closed, it stays read-only in the current workflow. Log final notes and communication before you close it.
+
+### Forgetting to assign an owner
+An unassigned request is easier to miss. Assign an owner as soon as the request is verified and ready for work.
+
+### Not reviewing verification status
+If the request is still pending verification, work may start before the requester email is confirmed. Always check the verification card early.
+
+### Leaving templates disabled
+If a template is disabled, it cannot be used from the request record. Review template status before your team needs it.
+
+### Hitting plan limits without noticing
+If your request volume reaches the plan limit, public intake pauses. Review usage on the Dashboard and Billing pages regularly.
+
+## Troubleshooting
+
+### The public form says intake is paused
+Cause: Your workspace may have reached the monthly request limit.
+
+What to do:
+
+1. Open **Billing**.
+2. Review request usage and current plan.
+3. Upgrade the workspace if you need more monthly capacity.
+
+### A verification link does not work
+Cause: The link may be expired, invalid, or already used.
+
+What to do:
+
+1. Open the request record.
+2. Use **Send verification email** to queue a fresh link.
+3. If needed, use **Mark verified manually** for an edge case.
+
+### Export CSV is not available
+Cause: Exports are plan-gated.
+
+What to do:
+
+1. Open **Billing**.
+2. Check whether exports are enabled on the current plan.
+3. Upgrade if exports are required.
+
+### Brand color or logo changes are blocked
+Cause: Custom branding is plan-gated.
+
+What to do:
+
+1. Open **Billing**.
+2. Check whether custom branding is enabled.
+3. Upgrade if you need branding controls.
+
+### My timezone is rejected
+Cause: The timezone must be a valid IANA timezone.
+
+What to do:
+
+1. Use a value such as `America/New_York`, `Europe/London`, or `UTC`.
+2. Save settings again.
+
+### A request cannot move to the status I want
+Cause: Stauxil only allows valid workflow transitions.
+
+What to do:
+
+1. Review the current request status.
+2. Choose one of the available next statuses shown in the request record.
+3. If the case is already closed, it cannot move back to an active state in the current workflow.
+
+## FAQ
+
+### Do requesters need an account to submit a request?
+No. They use the public request form without signing in.
+
+### Can I control which request types my workspace accepts?
+Yes. Use **Settings** to choose the allowed request types for your public form.
+
+### Can I customize the public form?
+Yes. All workspaces can set public intro and success copy. Plans with custom branding can also change the logo and brand color.
+
+### Are all template emails sent externally?
+No. In this MVP, the Verification template is queued for provider delivery. Other templates are logged inside Stauxil so the request history stays complete.
+
+### Can I export the request queue?
+Yes, if your plan includes exports. Use the **Requests** page to download a CSV and the request record page to print a single case summary.
+
+### Can I reopen a closed request?
+Not in the current workflow. Closed requests remain read-only.
+
+### What should I check most often as a workspace owner?
+Review overdue requests, unassigned requests, verification status, and plan usage. Those are the main areas most likely to create delays.
+
+## Owner Checklist
+Use this checklist to keep your workspace healthy.
+
+### Setup Checklist
+1. Configure workspace settings
+2. Review template library
+3. Test the public form
+4. Test the verification flow
+
+### Ongoing Checklist
+1. Review the dashboard daily
+2. Keep owners assigned
+3. Watch overdue cases
+4. Keep notes and email logs current
+5. Review billing and plan limits each month
+
+## Summary
+Stauxil helps workspace owners run a clear privacy request process. Your job in Stauxil is to make intake available, keep the workspace configured, assign ownership quickly, monitor deadlines, and make sure every important action is captured in the case history.
+
+If you do those things consistently, your team can handle privacy requests in one place without relying on scattered email threads or manual spreadsheets.
