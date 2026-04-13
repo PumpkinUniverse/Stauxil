@@ -2,25 +2,13 @@ import type { NextRequest } from 'next/server'
 import { fetchQuery } from 'convex/nextjs'
 import type { Id } from '@/convex/_generated/dataModel'
 import { api } from '@/convex/_generated/api'
+import {
+  buildRequestsCsv,
+  buildRequestsExportFilename,
+} from '@/lib/stauxil/request-export-csv'
 import { getConvexServerAuth } from '@/lib/stauxil/server-auth'
 
 export const dynamic = 'force-dynamic'
-
-type ExportRow = {
-  caseId: string
-  title: string
-  requesterLabel: string
-  requesterEmail: string
-  requestTypeLabel: string
-  statusLabel: string
-  verificationStatusLabel: string
-  dueAt: number | null
-  createdAt: number
-  closedAt: number | null
-  notesSummary: string | null
-  emailSummary: string | null
-  timelineSummary: string | null
-}
 
 export async function GET(request: NextRequest) {
   const workspaceId = request.nextUrl.searchParams.get('workspaceId')?.trim()
@@ -56,7 +44,7 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         'Cache-Control': 'no-store',
-        'Content-Disposition': `attachment; filename="${buildFilename(
+        'Content-Disposition': `attachment; filename="${buildRequestsExportFilename(
           exportData.workspaceName,
           exportData.exportedAt
         )}"`,
@@ -78,72 +66,4 @@ export async function GET(request: NextRequest) {
       },
     })
   }
-}
-
-function buildRequestsCsv(rows: ExportRow[]) {
-  const header = [
-    'Case ID',
-    'Title',
-    'Requester',
-    'Requester Email',
-    'Request Type',
-    'Status',
-    'Verification Status',
-    'Due Date',
-    'Created At',
-    'Closed At',
-    'Notes Summary',
-    'Email Summary',
-    'Timeline Summary',
-  ]
-
-  return [
-    header.map(escapeCsvValue).join(','),
-    ...rows.map((row) =>
-      [
-        row.caseId,
-        row.title,
-        row.requesterLabel,
-        row.requesterEmail,
-        row.requestTypeLabel,
-        row.statusLabel,
-        row.verificationStatusLabel,
-        formatDateValue(row.dueAt, 'date'),
-        formatDateValue(row.createdAt, 'dateTime'),
-        formatDateValue(row.closedAt, 'dateTime'),
-        row.notesSummary ?? '',
-        row.emailSummary ?? '',
-        row.timelineSummary ?? '',
-      ]
-        .map(escapeCsvValue)
-        .join(',')
-    ),
-  ].join('\r\n')
-}
-
-function escapeCsvValue(value: string) {
-  const normalized = value.replace(/\r?\n/g, ' ').trim()
-  return `"${normalized.replace(/"/g, '""')}"`
-}
-
-function formatDateValue(value: number | null, mode: 'date' | 'dateTime') {
-  if (value === null) {
-    return ''
-  }
-
-  const isoValue = new Date(value).toISOString()
-  return mode === 'date' ? isoValue.slice(0, 10) : isoValue
-}
-
-function buildFilename(workspaceName: string, exportedAt: number) {
-  const sanitizedWorkspaceName = workspaceName
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-
-  const dateSegment = new Date(exportedAt).toISOString().slice(0, 10)
-  const workspaceSegment = sanitizedWorkspaceName || 'workspace'
-
-  return `stauxil-${workspaceSegment}-requests-${dateSegment}.csv`
 }

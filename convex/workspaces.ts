@@ -407,10 +407,15 @@ async function listAccessibleWorkspacesForTokenIdentifier(
   ctx: WorkspaceLookupCtx,
   tokenIdentifier: string
 ): Promise<WorkspaceMembershipEntry[]> {
-  const memberships = await ctx.db
+  const memberships: Doc<'workspaceMembers'>[] = []
+
+  for await (const membership of ctx.db
     .query('workspaceMembers')
-    .withIndex('by_token_identifier_and_workspace_id', (q) => q.eq('tokenIdentifier', tokenIdentifier))
-    .take(25)
+    .withIndex('by_token_identifier_and_workspace_id', (q) =>
+      q.eq('tokenIdentifier', tokenIdentifier)
+    )) {
+    memberships.push(membership)
+  }
 
   const workspaces = await Promise.all(
     memberships.map(async (membership) => {

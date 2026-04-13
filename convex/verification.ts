@@ -28,14 +28,11 @@ async function expirePendingTokensForRequest(
   workspaceId: Id<'workspaces'>,
   requestId: Id<'requests'>
 ) {
-  const existingTokens = await ctx.db
+  for await (const token of ctx.db
     .query('verificationTokens')
     .withIndex('by_workspace_id_and_request_id', (q) =>
       q.eq('workspaceId', workspaceId).eq('requestId', requestId)
-    )
-    .take(20)
-
-  for (const token of existingTokens) {
+    )) {
     if (token.status === 'pending') {
       await ctx.db.patch(token._id, {
         status: 'expired',
@@ -381,14 +378,11 @@ export const verifyPublicToken = mutation({
       attemptCount: nextAttemptCount,
     })
 
-    const relatedTokens = await ctx.db
+    for await (const relatedToken of ctx.db
       .query('verificationTokens')
       .withIndex('by_workspace_id_and_request_id', (q) =>
         q.eq('workspaceId', workspace._id).eq('requestId', request._id)
-      )
-      .take(20)
-
-    for (const relatedToken of relatedTokens) {
+      )) {
       if (relatedToken._id !== verificationToken._id && relatedToken.status === 'pending') {
         await ctx.db.patch(relatedToken._id, {
           status: 'expired',

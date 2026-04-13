@@ -1,4 +1,5 @@
 import { v } from 'convex/values'
+import type { Doc } from './_generated/dataModel'
 import { internal } from './_generated/api'
 import { internalAction, internalMutation, internalQuery } from './_generated/server'
 import {
@@ -7,7 +8,15 @@ import {
 } from './lib/emailProvider'
 import { insertRequestEvent } from './requestEvents'
 
-type DeliverySnapshot = {
+type VerificationDeliverySnapshot = {
+  emailLogStatus: 'draft' | 'queued' | 'sent' | 'failed'
+  supportEmail: string | null
+  tokenStatus: Doc<'verificationTokens'>['status']
+  tokenExpiresAt: number
+  requestVerificationStatus: Doc<'requests'>['verificationStatus']
+}
+
+type RequestEmailDeliverySnapshot = {
   emailLogStatus: 'draft' | 'queued' | 'sent' | 'failed'
   supportEmail: string | null
 }
@@ -44,6 +53,9 @@ export const getDeliverySnapshot = internalQuery({
     return {
       emailLogStatus: emailLog.status,
       supportEmail: getWorkspaceSupportEmail(workspace.supportEmail),
+      tokenStatus: token.status,
+      tokenExpiresAt: token.expiresAt,
+      requestVerificationStatus: request.verificationStatus,
     }
   },
 })
@@ -131,11 +143,17 @@ export const finalizeVerificationEmailDelivery = internalMutation({
         sentAt: now,
       })
 
-      await ctx.db.patch(token._id, {
-        lastSentAt: now,
-      })
+      if (token.status === 'pending') {
+        await ctx.db.patch(token._id, {
+          lastSentAt: now,
+        })
+      }
 
-      if (request.verificationStatus !== 'verified') {
+      if (
+        request.verificationStatus !== 'verified' &&
+        token.status === 'pending' &&
+        token.expiresAt > now
+      ) {
         await ctx.db.patch(request._id, {
           verificationStatus: 'pending',
         })
@@ -179,7 +197,11 @@ export const finalizeVerificationEmailDelivery = internalMutation({
       sentAt: null,
     })
 
-    if (request.verificationStatus !== 'verified') {
+    if (
+      request.verificationStatus !== 'verified' &&
+      token.status === 'pending' &&
+      token.expiresAt > Date.now()
+    ) {
       await ctx.db.patch(request._id, {
         verificationStatus: 'failed',
       })
@@ -202,6 +224,74 @@ export const finalizeVerificationEmailDelivery = internalMutation({
         error: failureMessage,
       }),
     })
+
+    return {
+      emailLogId: emailLog._id,
+      outcome: 'failed' as const,
+    }
+  },
+})
+
+export const skipVerificationEmailDelivery = internalMutation({
+  args: {
+    workspaceId: v.id('workspaces'),
+    requestId: v.id('requests'),
+    tokenId: v.id('verificationTokens'),
+    emailLogId: v.id('emailLogs'),
+    providerName: v.optional(v.union(v.string(), v.null())),
+    fromEmail: v.optional(v.union(v.string(), v.null())),
+    replyToEmail: v.optional(v.union(v.string(), v.null())),
+    errorMessage: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const request = await ctx.db.get(args.requestId)
+    const token = await ctx.db.get(args.tokenId)
+    const emailLog = await ctx.db.get(args.emailLogId)
+
+    if (
+      request === null ||
+      request.workspaceId !== args.workspaceId ||
+      token === null ||
+      token.workspaceId !== args.workspaceId ||
+      token.requestId !== args.requestId ||
+      emailLog === null ||
+      emailLog.workspaceId !== args.workspaceId ||
+      emailLog.requestId !== args.requestId
+    ) {
+      throw new Error('Verification delivery state could not be loaded.')
+    }
+
+    if (emailLog.status !== 'queued') {
+      return {
+        emailLogId: emailLog._id,
+        outcome: emailLog.status,
+      }
+    }
+
+    const now = Date.now()
+
+    await ctx.db.patch(emailLog._id, {
+      status: 'failed',
+      deliveryMode: 'provider',
+      fromEmail: args.fromEmail ?? emailLog.fromEmail,
+      replyToEmail: args.replyToEmail ?? emailLog.replyToEmail,
+      senderSource: 'platform',
+      providerName: args.providerName ?? emailLog.providerName,
+      errorMessage: trimEventValue(args.errorMessage),
+      sentAt: null,
+    })
+
+    if (token.status === 'pending' && token.expiresAt <= now) {
+      await ctx.db.patch(token._id, {
+        status: 'expired',
+      })
+
+      if (request.verificationStatus !== 'verified') {
+        await ctx.db.patch(request._id, {
+          verificationStatus: 'expired',
+        })
+      }
+    }
 
     return {
       emailLogId: emailLog._id,
@@ -333,7 +423,7 @@ export const deliverVerificationEmail = internalAction({
     body: v.string(),
   },
   handler: async (ctx, args) => {
-    const snapshot: DeliverySnapshot | null = await ctx.runQuery(
+    const snapshot: VerificationDeliverySnapshot | null = await ctx.runQuery(
       internal.verificationDelivery.getDeliverySnapshot,
       {
         workspaceId: args.workspaceId,
@@ -350,6 +440,25 @@ export const deliverVerificationEmail = internalAction({
     }
 
     const attemptedDelivery = getTransactionalEmailDefaults(snapshot.supportEmail)
+    const skipReason = getVerificationDeliverySkipReason(snapshot)
+
+    if (skipReason !== null) {
+      await ctx.runMutation(internal.verificationDelivery.skipVerificationEmailDelivery, {
+        workspaceId: args.workspaceId,
+        requestId: args.requestId,
+        tokenId: args.tokenId,
+        emailLogId: args.emailLogId,
+        providerName: attemptedDelivery.providerName,
+        fromEmail: attemptedDelivery.fromEmail,
+        replyToEmail: attemptedDelivery.replyToEmail,
+        errorMessage: skipReason,
+      })
+
+      return {
+        status: 'skipped' as const,
+        reason: skipReason,
+      }
+    }
 
     try {
       const result = await sendTransactionalEmail({
@@ -409,7 +518,7 @@ export const deliverRequestEmail = internalAction({
     body: v.string(),
   },
   handler: async (ctx, args) => {
-    const snapshot: DeliverySnapshot | null = await ctx.runQuery(
+    const snapshot: RequestEmailDeliverySnapshot | null = await ctx.runQuery(
       internal.verificationDelivery.getRequestEmailDeliverySnapshot,
       {
         workspaceId: args.workspaceId,
@@ -524,4 +633,22 @@ function formatTemplateKey(templateKey: string | null) {
     .split('_')
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ')
+}
+
+function getVerificationDeliverySkipReason(snapshot: VerificationDeliverySnapshot) {
+  if (snapshot.requestVerificationStatus === 'verified') {
+    return 'Skipped verification email because the request is already verified.'
+  }
+
+  if (snapshot.tokenStatus !== 'pending') {
+    return snapshot.tokenStatus === 'expired'
+      ? 'Skipped verification email because the verification token is expired.'
+      : 'Skipped verification email because the verification token is no longer active.'
+  }
+
+  if (snapshot.tokenExpiresAt <= Date.now()) {
+    return 'Skipped verification email because the verification token expired before delivery.'
+  }
+
+  return null
 }

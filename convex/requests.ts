@@ -101,10 +101,7 @@ export const getDetailByCaseId = query({
       return null
     }
 
-    const members = await ctx.db
-      .query('workspaceMembers')
-      .withIndex('by_workspace_id', (q) => q.eq('workspaceId', args.workspaceId))
-      .take(100)
+    const members = await listWorkspaceMembers(ctx, args.workspaceId)
 
     members.sort((left, right) => {
       const roleComparison =
@@ -583,10 +580,14 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const { membership, workspace } = await requireWorkspaceAccess(ctx, args.workspaceId)
     const title = args.title.trim()
+    const subjectEmail = normalizeEmail(args.subjectEmail)
+    const requesterEmail = normalizeOptionalEmailAddress(args.requesterEmail)
 
     if (!title) {
       throw new Error('Request title is required')
     }
+
+    assertValidEmailAddress(subjectEmail, 'subject')
 
     await assertWorkspaceCanCreateRequest(ctx, workspace)
 
@@ -600,12 +601,9 @@ export const create = mutation({
       description: args.description ?? null,
       jurisdiction: args.jurisdiction ?? null,
       accountReference: args.accountReference ?? null,
-      subjectEmail: normalizeEmail(args.subjectEmail),
+      subjectEmail,
       subjectName: args.subjectName ?? null,
-      requesterEmail:
-        args.requesterEmail && args.requesterEmail.trim()
-          ? normalizeEmail(args.requesterEmail)
-          : null,
+      requesterEmail,
       requesterName: args.requesterName ?? null,
       dueAt: args.dueAt ?? null,
       submittedAt: now,
@@ -835,7 +833,9 @@ export const updateDetails = mutation({
     }
 
     if (args.subjectEmail !== undefined) {
-      patch.subjectEmail = normalizeEmail(args.subjectEmail)
+      const subjectEmail = normalizeEmail(args.subjectEmail)
+      assertValidEmailAddress(subjectEmail, 'subject')
+      patch.subjectEmail = subjectEmail
     }
 
     if (args.subjectName !== undefined) {
@@ -843,10 +843,7 @@ export const updateDetails = mutation({
     }
 
     if (args.requesterEmail !== undefined) {
-      patch.requesterEmail =
-        args.requesterEmail && args.requesterEmail.trim()
-          ? normalizeEmail(args.requesterEmail)
-          : null
+      patch.requesterEmail = normalizeOptionalEmailAddress(args.requesterEmail)
     }
 
     if (args.requesterName !== undefined) {
@@ -1060,10 +1057,13 @@ type InboxFilters = {
 }
 
 async function listWorkspaceMembers(ctx: QueryCtx, workspaceId: Id<'workspaces'>) {
-  const members = await ctx.db
+  const members: Doc<'workspaceMembers'>[] = []
+
+  for await (const member of ctx.db
     .query('workspaceMembers')
-    .withIndex('by_workspace_id', (q) => q.eq('workspaceId', workspaceId))
-    .take(100)
+    .withIndex('by_workspace_id', (q) => q.eq('workspaceId', workspaceId))) {
+    members.push(member)
+  }
 
   members.sort((left, right) => {
     const roleComparison = getMemberRolePriority(left.role) - getMemberRolePriority(right.role)
@@ -1498,6 +1498,22 @@ function titleize(value: string) {
 
 function isValidEmailAddress(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+}
+
+function assertValidEmailAddress(value: string, label: 'subject' | 'requester') {
+  if (!isValidEmailAddress(value)) {
+    throw new Error(`Enter a valid ${label} email address.`)
+  }
+}
+
+function normalizeOptionalEmailAddress(value: string | null | undefined) {
+  if (!value || !value.trim()) {
+    return null
+  }
+
+  const normalizedEmail = normalizeEmail(value)
+  assertValidEmailAddress(normalizedEmail, 'requester')
+  return normalizedEmail
 }
 
 export function formatCaseId(requestId: Id<'requests'>) {

@@ -5,6 +5,7 @@ import { api } from '@/convex/_generated/api'
 import { normalizeWorkspacePlan } from '@/lib/stauxil/billing'
 import { resolveWorkspacePlanFromClerk } from '@/lib/stauxil/clerk-billing'
 import { getConvexServerAuth } from '@/lib/stauxil/server-auth'
+import { getWorkspacePlanUpdate } from '@/lib/stauxil/workspace-plan-sync'
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   await syncActiveWorkspacePlan()
@@ -26,10 +27,13 @@ async function syncActiveWorkspacePlan() {
       return
     }
 
-    const nextPlan = await resolveWorkspacePlanFromClerk(clerkAuth.userId)
     const currentPlan = normalizeWorkspacePlan(activeWorkspace.workspace.plan)
+    const nextPlan = getWorkspacePlanUpdate(
+      currentPlan,
+      await resolveWorkspacePlanFromClerk(clerkAuth.userId)
+    )
 
-    if (currentPlan === nextPlan) {
+    if (nextPlan === null) {
       return
     }
 
